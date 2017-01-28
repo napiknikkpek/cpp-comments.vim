@@ -58,12 +58,11 @@ endfu
 
 fu! s:tostart()
   let cur = getpos('.')
-  if s:syname(cur) == 'cCommentStart'
-    let ch = s:char(cur)
+  if s:syname(cur) == 'cCommentStart' && s:char(cur) == '/'
     call search('.', 'W')
     let next = getpos('.')
     call setpos('.', cur)
-    if ch == '/' && s:char(next) == '*' && s:syname(next) == 'cCommentStart'
+    if s:char(next) == '*' && s:syname(next) == 'cCommentStart'
       return
     endif
   endif
