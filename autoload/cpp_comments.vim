@@ -78,15 +78,15 @@ fu! s:exit_expr()
 endfu
 
 fu! cpp_comments#inner()
-  normal vv
+  normal! vv
   call s:tostart()
   call s:next()
   call s:next()
-  normal m<
+  normal! m<
   call search('\*\/', 'e')
   call s:prev()
   call s:prev()
-  normal m>gv
+  normal! m>gv
 endfu
 
 fu! cpp_comments#inner_expr()
@@ -163,7 +163,7 @@ fu! cpp_comments#set(mode) abort
     call setpos('.', cur)
     return
   endif
-  normal vv
+  normal! vv
   call setpos("'<", b)
   call setpos("'>", e)
   set paste 
@@ -175,9 +175,48 @@ fu! cpp_comments#set(mode) abort
   set nopaste
 endfu
 
+fu! s:walkL(step)
+  let prev = line('.')
+  let flags = a:step > 0 ? 'W' : 'bW'
+  while search('^\s*\zs\/\/', flags)
+    if line('.') != prev+a:step || s:syname(getpos('.')) != 'cCommentL'
+      break
+    endif 
+    let prev = line('.')
+    normal! 2x
+  endw
+endfu
+
+fu! cpp_comments#delL() abort
+  let cur = getpos('.')
+  let lnum = s:line(cur)
+  while search('\/\/', 'cb', lnum)
+    if col('.') == 0
+      break
+    elseif s:syname([0, lnum, col('.')-1, 0]) != 'cCommentL'
+      break
+    endif
+    normal! h
+  endw
+
+  set ei=all
+  normal! 2x
+  if col('.')<=1 || getline('.')[0:col('.')-2] =~# '^\s*$'
+    call s:walkL(-1)
+    call setpos('.', cur)
+    normal! $
+    call s:walkL(1)
+  endif
+  call setpos('.', cur)
+  set ei=
+endfu
+
 fu! cpp_comments#del() abort
   let cur = getpos('.')
-  if !s:inside(cur)
+  if s:syname(cur) == 'cCommentL'
+    call cpp_comments#delL()
+    return
+  elseif !s:inside(cur)
     return
   endif
   call s:tostart()
