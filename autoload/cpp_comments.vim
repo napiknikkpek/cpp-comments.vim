@@ -114,7 +114,7 @@ fu! cpp_comments#outer_expr()
   return ":\<C-u>call cpp_comments#outer()\<cr>"
 endfu
 
-fu! cpp_comments#set(mode)
+fu! cpp_comments#set(mode) abort
   if a:mode == 'visual'
     if visualmode() == 'v'
       let b = getpos("'<")
@@ -142,20 +142,27 @@ fu! cpp_comments#set(mode)
     let e = b
   endif
 
-  if s:inside(b)
+  let cur = getpos('.')
+  let intersect = v:false
+  if s:inside(b) || s:syname(b) =~# '^cComment'
+    let intersect = v:true
+  else
+    call setpos('.', b)
+    if search('\*\/', 'ceW', s:line(e))
+          \ && !s:less([0, e[1], e[2]+1, 0], getpos('.'))
+      let intersect = v:true
+    else
+      if s:inside(e) || s:syname(e) =~# '^cComment'
+        let intersect = v:true
+      endif
+    endif
+  endif
+  
+  if intersect
     call s:warn('[comments] intersect existing comment')
+    call setpos('.', cur)
     return
   endif
-  let cur = getpos('.')
-  call setpos('.', b)
-  while search('\/\*', 'W', s:line(e))
-    if (!s:less(e, getpos('.')))
-          \&& s:inside(getpos('.'))
-      call setpos('.', cur)
-      call s:warn('[comments] intersect existing comment')
-      return
-    endif
-  endwhile
   normal vv
   call setpos("'<", b)
   call setpos("'>", e)
@@ -168,9 +175,6 @@ endfu
 
 fu! cpp_comments#del() abort
   let cur = getpos('.')
-  if s:syname(cur) == 'cCommentL'
-    s/\/\///  
-  endif
   if !s:inside(cur)
     return
   endif
