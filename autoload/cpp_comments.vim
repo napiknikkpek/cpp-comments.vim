@@ -160,9 +160,11 @@ fu! cpp_comments#set(mode)
   call setpos("'<", b)
   call setpos("'>", e)
   set paste 
+  set ei=all
   exe 'normal! gvc'
         \."\<C-o>".':let @" = ''/*''.@".''*/'''."\<cr>"
         \."\<C-r>\""
+  set ei=
   set nopaste
 endfu
 
@@ -176,8 +178,10 @@ fu! cpp_comments#del() abort
   endif
   call s:tostart()
   set paste
+  set ei=all
   exe 'normal cac'
         \."\<C-o>".':let @" = strpart(@", 2, strlen(@")-4)'."\<cr>"
         \."\<C-r>\""
+  set ei=
   set nopaste
 endfu
