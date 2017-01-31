@@ -34,7 +34,7 @@ fu! s:syname(pos)
 endfu
 
 fu! s:inside(pos)
-  if index(['cComment', 'cCommentStart'], s:syname(a:pos)) != -1
+  if s:syname(a:pos) =~# '^cComment\(\|Start\|StartError\)$'
     return v:true
   endif
   if s:col(a:pos) <= strlen(getline(s:line(a:pos)))
@@ -43,13 +43,12 @@ fu! s:inside(pos)
   let cur = getpos('.')
   call setpos('.', a:pos) 
   call search('.', 'bW')
-  let pr = getpos('.')
-  let sn = s:syname(pr)
-  let ch = s:char(pr)
+  let syn = s:syname(getpos('.'))
+  let ch = s:char(getpos('.'))
   call setpos('.', cur)
-  if sn == 'cComment'
+  if syn == 'cComment'
     return v:true
-  elseif sn == 'cCommentStart'
+  elseif syn == 'cCommentStart'
     return ch != '/'
   else
     return v:false
