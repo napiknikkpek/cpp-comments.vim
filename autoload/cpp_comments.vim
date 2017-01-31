@@ -56,6 +56,18 @@ fu! s:inside(pos)
   endif
 endfu
 
+fu! s:tostartL()
+  let lnum = line('.')
+  while search('\/\/', 'cb', lnum)
+    if col('.') == 0
+      break
+    elseif s:syname([0, lnum, col('.')-1, 0]) != 'cCommentL'
+      break
+    endif
+    normal! h
+  endw
+endfu
+
 fu! s:tostart()
   let cur = getpos('.')
   if s:syname(cur) == 'cCommentStart' && s:char(cur) == '/'
@@ -77,6 +89,11 @@ fu! s:exit_expr()
   return index(['v', 'V', "<CTRL-V>"], mode()) != -1 ? '' : '<Esc>'
 endfu
 
+fu! cpp_comments#innerL()
+  call s:tostartL()
+  normal! 2lvg_
+endfu
+
 fu! cpp_comments#inner()
   normal! vv
   call s:tostart()
@@ -90,6 +107,14 @@ fu! cpp_comments#inner()
 endfu
 
 fu! cpp_comments#inner_expr()
+  if s:syname(getpos('.')) == 'cCommentL'
+    call s:tostartL()
+    let sz = strlen(getline('.'))
+    if col('.')+1 == sz
+      return s:exit_expr()
+    endif
+    return ":\<C-u>call cpp_comments#innerL()\<cr>"
+  endif
   if !s:inside(getpos('.'))
     return s:exit_expr()
   endif
@@ -102,12 +127,20 @@ fu! cpp_comments#inner_expr()
   return ":\<C-u>call cpp_comments#inner()\<cr>"
 endfu
 
+fu! cpp_comments#outerL()
+  call s:tostartL()
+  normal! vg_
+endfu
+
 fu! cpp_comments#outer()
   call s:tostart()
   normal! vl]*
 endfu
 
 fu! cpp_comments#outer_expr()
+  if s:syname(getpos('.')) == 'cCommentL'
+    return ":\<C-u>call cpp_comments#outerL()\<cr>"
+  endif
   if !s:inside(getpos('.'))
     return s:exit_expr()
   endif
@@ -189,15 +222,7 @@ endfu
 
 fu! cpp_comments#delL() abort
   let cur = getpos('.')
-  let lnum = s:line(cur)
-  while search('\/\/', 'cb', lnum)
-    if col('.') == 0
-      break
-    elseif s:syname([0, lnum, col('.')-1, 0]) != 'cCommentL'
-      break
-    endif
-    normal! h
-  endw
+  call s:tostartL()
 
   set ei=all
   normal! 2x
