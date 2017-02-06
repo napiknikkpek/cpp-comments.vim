@@ -15,6 +15,7 @@ fu! s:less(lhs, rhs)
         \|| s:line(a:lhs) == s:line(a:rhs) && s:col(a:lhs) < s:col(a:rhs)
 endfu
 
+let s:intersect_msg = '[comments] intersect existing comment'
 fu! s:warn(msg)
   echohl WarningMsg
   echo a:msg
@@ -31,6 +32,10 @@ endfu
 
 fu! s:syname(pos)
   return synIDattr(synID(s:line(a:pos), s:col(a:pos), 1), 'name')
+endfu
+
+fu! s:insideL(pos)
+  return s:syname(a:pos) == 'cCommentL'
 endfu
 
 fu! s:inside(pos)
@@ -106,7 +111,7 @@ fu! cpp_comments#inner()
 endfu
 
 fu! cpp_comments#inner_expr()
-  if s:syname(getpos('.')) == 'cCommentL'
+  if s:insideL(getpos('.'))
     call s:tostartL()
     let sz = strlen(getline('.'))
     if col('.')+1 == sz
@@ -137,7 +142,7 @@ fu! cpp_comments#outer()
 endfu
 
 fu! cpp_comments#outer_expr()
-  if s:syname(getpos('.')) == 'cCommentL'
+  if s:insideL(getpos('.'))
     return ":\<C-u>call cpp_comments#outerL()\<cr>"
   endif
   if !s:inside(getpos('.'))
@@ -146,17 +151,32 @@ fu! cpp_comments#outer_expr()
   return ":\<C-u>call cpp_comments#outer()\<cr>"
 endfu
 
+fu! cpp_comments#set_line()
+  let cur = getpos('.')
+  normal ^vacv
+  if line("'>") != s:line(cur)
+    call s:warn(s:intersect_msg)
+    call setpos('.', cur)
+    return
+  endif
+  normal g_vacv
+  if line("'<") != s:line(cur)
+    call s:warn(s:intersect_msg)
+    call setpos('.', cur)
+    return
+  endif
+  exe ":normal \<Plug>CommentaryLine\<cr>"
+endfu
+
 fu! cpp_comments#set(mode) abort
-  if a:mode == 'visual'
-    if visualmode() == 'v'
-      let b = getpos("'<")
-      let e = getpos("'>")
-    elseif visualmode() == 'V'
-      let b = getpos("'<")
-      let b[2] = 1
-      let e = getpos("'>")
-      let e[2] = strlen(getline("'>"))
-    endif
+  if a:mode == 'v'
+    let b = getpos("'<")
+    let e = getpos("'>")
+  elseif a:mode == 'V'
+    let b = getpos("'<")
+    let b[2] = 1
+    let e = getpos("'>")
+    let e[2] = strlen(getline("'>"))
   elseif a:mode == 'line'
     let b = getpos("'[")
     let b[2] = 1
@@ -165,6 +185,8 @@ fu! cpp_comments#set(mode) abort
   elseif a:mode == 'char'
     let b = getpos("'[")
     let e = getpos("']")
+  else
+    return
   endif
 
   if !exists('b') || !exists('e')
@@ -195,6 +217,12 @@ fu! cpp_comments#set(mode) abort
     call setpos('.', cur)
     return
   endif
+
+  if a:mode == 'V'
+    exe ":normal \<Plug>Commentary\<cr>"
+    return
+  endif
+
   normal! vv
   call setpos("'<", b)
   call setpos("'>", e)
@@ -207,48 +235,22 @@ fu! cpp_comments#set(mode) abort
   set nopaste
 endfu
 
-fu! s:walkL(step)
-  let prev = line('.')
-  let flags = a:step > 0 ? 'W' : 'bW'
-  while search('^\s*\zs\/\/', flags)
-    if line('.') != prev+a:step || s:syname(getpos('.')) != 'cCommentL'
-      break
-    endif 
-    let prev = line('.')
-    normal! 2x
-  endw
-endfu
-
-fu! cpp_comments#delL() abort
-  let cur = getpos('.')
-  call s:tostartL()
-
-  set ei=all
-  normal! 2x
-  if col('.')<=1 || getline('.')[0:col('.')-2] =~# '^\s*$'
-    call s:walkL(-1)
-    call setpos('.', cur)
-    normal! $
-    call s:walkL(1)
-  endif
-  call setpos('.', cur)
-  set ei=
-endfu
-
 fu! cpp_comments#del() abort
   let cur = getpos('.')
-  if s:syname(cur) == 'cCommentL'
-    call cpp_comments#delL()
-    return
-  elseif !s:inside(cur)
+  normal ^
+  let start = getpos('.')
+  call setpos('.', cur)
+  if s:insideL(start)
+    exe ":normal \<Plug>Commentary\<Plug>Commentary\<cr>"
     return
   endif
-  call s:tostart()
+
+  if !s:inside(cur) && !s:insideL(cur)
+    return
+  endif
   set paste
   set ei=all
-  exe 'normal cac'
-        \."\<C-o>".':let @" = strpart(@", 2, strlen(@")-4)'."\<cr>"
-        \."\<C-r>\""
+  exe 'normal yiccac'."\<C-r>0"
   set ei=
   set nopaste
 endfu

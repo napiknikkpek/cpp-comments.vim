@@ -7,8 +7,8 @@ fu! s:mappings()
 
   nnoremap <buffer> gcu :<C-u>call cpp_comments#del()<cr>
   nnoremap <buffer> gc :<C-u>set opfunc=cpp_comments#set<cr>g@
-  nmap <buffer> gcc 0gc$
-  vnoremap <buffer> gc :<C-u>call cpp_comments#set('visual')<cr>
+  nnoremap <buffer> gcc :<C-u>call cpp_comments#set_line()<cr>
+  vnoremap <buffer> gc :<C-u>call cpp_comments#set(visualmode())<cr>
 endfu
 
 augroup cpp-comments
