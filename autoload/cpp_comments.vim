@@ -144,14 +144,13 @@ endfu
 fu! cpp_comments#outer_expr()
   if s:insideL(getpos('.'))
     return ":\<C-u>call cpp_comments#outerL()\<cr>"
+  elseif s:inside(getpos('.'))
+    return ":\<C-u>call cpp_comments#outer()\<cr>"
   endif
-  if !s:inside(getpos('.'))
-    return s:exit_expr()
-  endif
-  return ":\<C-u>call cpp_comments#outer()\<cr>"
+  return s:exit_expr()
 endfu
 
-fu! cpp_comments#set_line()
+fu! cpp_comments#set_line() abort
   let cur = getpos('.')
   normal ^vacv
   if line("'>") != s:line(cur)
@@ -165,7 +164,21 @@ fu! cpp_comments#set_line()
     call setpos('.', cur)
     return
   endif
-  exe ":normal \<Plug>CommentaryLine\<cr>"
+  exe "normal \<Plug>CommentaryLine"
+endfu
+
+fu! s:intersects(b, e)
+  if s:inside(a:b) || s:insideL(a:b)
+    return v:true
+  else
+    call setpos('.', a:b)
+    if search('\*\/', 'ceW', s:line(a:e))
+          \ && !s:less([0, s:line(a:e), s:col(a:e)+1, 0], getpos('.'))
+      return v:true
+    else
+      return s:inside(a:e) || s:insideL(a:e)
+    endif
+  endif
 endfu
 
 fu! cpp_comments#set(mode) abort
@@ -189,59 +202,40 @@ fu! cpp_comments#set(mode) abort
     return
   endif
 
-  if !exists('b') || !exists('e')
-    return
-  endif
   if s:less(e, b)
     let e = b
   endif
 
   let cur = getpos('.')
-  let intersect = v:false
-  if s:inside(b) || s:syname(b) =~# '^cComment'
-    let intersect = v:true
-  else
-    call setpos('.', b)
-    if search('\*\/', 'ceW', s:line(e))
-          \ && !s:less([0, e[1], e[2]+1, 0], getpos('.'))
-      let intersect = v:true
-    else
-      if s:inside(e) || s:syname(e) =~# '^cComment'
-        let intersect = v:true
-      endif
-    endif
-  endif
-  
-  if intersect
-    call s:warn('[comments] intersect existing comment')
+  if s:intersects(b, e)
+    call s:warn(s:intersect_msg)
     call setpos('.', cur)
     return
   endif
 
-  if a:mode == 'V'
-    exe ":normal \<Plug>Commentary\<cr>"
+  if a:mode == 'V' || a:mode == 'line'
+    call setpos('.', b)
+    exe printf("normal \<Plug>Commentary%sG", s:line(e))
     return
   endif
 
-  normal! vv
+  normal vv
   call setpos("'<", b)
   call setpos("'>", e)
   set paste 
   set ei=all
-  exe 'normal! gvc'
-        \."\<C-o>".':let @" = ''/*''.@".''*/'''."\<cr>"
-        \."\<C-r>\""
+  exe "normal! gvc/*\<C-r>\"*/"
   set ei=
   set nopaste
 endfu
 
 fu! cpp_comments#del() abort
   let cur = getpos('.')
-  normal ^
+  normal! ^
   let start = getpos('.')
   call setpos('.', cur)
   if s:insideL(start)
-    exe ":normal \<Plug>Commentary\<Plug>Commentary\<cr>"
+    exe "normal \<Plug>Commentary\<Plug>Commentary"
     return
   endif
 

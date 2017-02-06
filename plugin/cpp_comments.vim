@@ -14,4 +14,5 @@ endfu
 augroup cpp-comments
   autocmd!
   autocmd FileType c,cpp call s:mappings()
+  autocmd FileType c,cpp :setlocal commentstring=//%s
 augroup END
