@@ -93,12 +93,12 @@ fu! s:exit_expr()
   return index(['v', 'V', "<CTRL-V>"], mode()) != -1 ? '' : '<Esc>'
 endfu
 
-fu! cpp_comments#innerL()
+fu! cpp#comments#innerL()
   call s:tostartL()
   normal! 2lvg_
 endfu
 
-fu! cpp_comments#inner()
+fu! cpp#comments#inner()
   normal! vv
   call s:tostart()
   call s:next()
@@ -110,14 +110,14 @@ fu! cpp_comments#inner()
   normal! m>gv
 endfu
 
-fu! cpp_comments#inner_expr()
+fu! cpp#comments#inner_expr()
   if s:insideL(getpos('.'))
     call s:tostartL()
     let sz = strlen(getline('.'))
     if col('.')+1 == sz
       return s:exit_expr()
     endif
-    return ":\<C-u>call cpp_comments#innerL()\<cr>"
+    return ":\<C-u>call cpp#comments#innerL()\<cr>"
   endif
   if !s:inside(getpos('.'))
     return s:exit_expr()
@@ -128,29 +128,29 @@ fu! cpp_comments#inner_expr()
   if s:syname(getpos('.')) == 'cCommentStart'
     return s:exit_expr()
   endif
-  return ":\<C-u>call cpp_comments#inner()\<cr>"
+  return ":\<C-u>call cpp#comments#inner()\<cr>"
 endfu
 
-fu! cpp_comments#outerL()
+fu! cpp#comments#outerL()
   call s:tostartL()
   normal! vg_
 endfu
 
-fu! cpp_comments#outer()
+fu! cpp#comments#outer()
   call s:tostart()
   normal! vl]*
 endfu
 
-fu! cpp_comments#outer_expr()
+fu! cpp#comments#outer_expr()
   if s:insideL(getpos('.'))
-    return ":\<C-u>call cpp_comments#outerL()\<cr>"
+    return ":\<C-u>call cpp#comments#outerL()\<cr>"
   elseif s:inside(getpos('.'))
-    return ":\<C-u>call cpp_comments#outer()\<cr>"
+    return ":\<C-u>call cpp#comments#outer()\<cr>"
   endif
   return s:exit_expr()
 endfu
 
-fu! cpp_comments#set_line() abort
+fu! cpp#comments#set_line() abort
   let cur = getpos('.')
   normal ^vacv
   if line("'>") != s:line(cur)
@@ -181,7 +181,7 @@ fu! s:intersects(b, e)
   endif
 endfu
 
-fu! cpp_comments#set(mode) abort
+fu! cpp#comments#set(mode) abort
   if a:mode == 'v'
     let b = getpos("'<")
     let e = getpos("'>")
@@ -229,7 +229,7 @@ fu! cpp_comments#set(mode) abort
   set nopaste
 endfu
 
-fu! cpp_comments#del() abort
+fu! cpp#comments#del() abort
   let cur = getpos('.')
   normal! ^
   let start = getpos('.')
