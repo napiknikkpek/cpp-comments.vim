@@ -182,20 +182,10 @@ fu! s:intersects(b, e)
 endfu
 
 fu! cpp#comments#set(mode) abort
-  if a:mode == 'v'
+  if a:mode =~? 'v'
     let b = getpos("'<")
     let e = getpos("'>")
-  elseif a:mode == 'V'
-    let b = getpos("'<")
-    let b[2] = 1
-    let e = getpos("'>")
-    let e[2] = strlen(getline("'>"))
-  elseif a:mode == 'line'
-    let b = getpos("'[")
-    let b[2] = 1
-    let e = getpos("']")
-    let e[2] = strlen(getline("']"))
-  elseif a:mode == 'char'
+  elseif a:mode =~# 'line\|char'
     let b = getpos("'[")
     let e = getpos("']")
   else
@@ -206,6 +196,12 @@ fu! cpp#comments#set(mode) abort
     let e = b
   endif
 
+  if a:mode == 'V' || a:mode == 'line'
+    call setpos('.', b) 
+    exe printf("normal \<Plug>Commentary%sG", s:line(e))
+    return
+  endif
+
   let cur = getpos('.')
   if s:intersects(b, e)
     call s:warn(s:intersect_msg)
@@ -213,13 +209,7 @@ fu! cpp#comments#set(mode) abort
     return
   endif
 
-  if a:mode == 'V' || a:mode == 'line'
-    call setpos('.', b)
-    exe printf("normal \<Plug>Commentary%sG", s:line(e))
-    return
-  endif
-
-  normal vv
+  normal! vv
   call setpos("'<", b)
   call setpos("'>", e)
   set paste 
