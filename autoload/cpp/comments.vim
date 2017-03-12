@@ -182,7 +182,7 @@ fu! s:intersects(b, e)
 endfu
 
 fu! cpp#comments#set(mode) abort
-  if a:mode =~? 'v'
+  if a:mode ==? 'v'
     let b = getpos("'<")
     let e = getpos("'>")
   elseif a:mode =~# 'line\|char'
@@ -196,7 +196,7 @@ fu! cpp#comments#set(mode) abort
     let e = b
   endif
 
-  if a:mode == 'V' || a:mode == 'line'
+  if a:mode ==# 'V' || a:mode ==# 'line'
     call setpos('.', b) 
     exe printf("normal \<Plug>Commentary%sG", s:line(e))
     return
